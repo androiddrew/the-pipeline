@@ -1,0 +1,47 @@
+version: '3.6'
+
+services:
+
+  go_server:
+    image: androiddrew/the-pipeline_go_server
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+    volumes:
+      - go_data_volume:/godata
+      - go_home_volume:/home/go
+    ports:
+      - 8153:8153
+      - 8154:8154
+    networks:
+      - ci_cd
+
+  go_agent:
+    image: androiddrew/the-pipeline_go_agent
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == worker]
+    environment:
+      - GO_SERVER_URL=https://go_server:8154/go
+    depends_on:
+      - go_server
+    networks:
+      - ci_cd
+
+
+# We are now using an overlay network to connect multiple Docker engines across each host and enable communication between Swarm services
+networks:
+  ci_cd:
+    driver: overlay
+
+volumes:
+  go_data_volume:
+    driver: local
+  go_home_volume:
+    driver: local
